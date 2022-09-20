@@ -12,7 +12,6 @@ import unittest
 from pkg_resources import resource_filename
 
 import intelmq.lib.test as test
-from intelmq.lib.utils import load_configuration
 from intelmq.bots.experts.modify.expert import ModifyExpertBot
 
 EVENT_TEMPL = {"__type": "Event",
