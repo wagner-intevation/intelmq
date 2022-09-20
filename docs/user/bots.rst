@@ -2638,6 +2638,9 @@ We have an event with `feed.name = Spamhaus Cert` and `malware.name = confickera
 
 Assume we have an event with `feed.name = Spamhaus Cert` and `malware.name = feodo`. The default condition matches, but no others. So the default action is applied. The value for `classification.identifier` will be set to `feodo` by `{msg[malware.name]}`.
 
+Example configuration files can be found in [`intelmq/bots/experts/modify/examples/`](https://github.com/certtools/intelmq/tree/develop/intelmq/bots/experts/modify/examples/).
+Another good usage example is the [malware name mapping](https://github.com/certtools/malware_name_mapping).
+
 **Types**
 
 If the rule is a string, a regular expression search is performed, also for numeric values (`str()` is called on them). If the rule is numeric for numeric values, a simple comparison is done. If other types are mixed, a warning will be thrown.
