@@ -553,6 +553,9 @@ class Bot:
 
         if self.logger:
             self.logger.info("Bot stopped.")
+            # write all out-standing log messages:
+            for handler in self.logger.handlers:
+                handler.flush()
             logging.shutdown()
         else:
             self.__log_buffer.append(('info', 'Bot stopped.'))

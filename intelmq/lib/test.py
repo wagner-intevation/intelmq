@@ -370,16 +370,16 @@ class BotTestCase:
 
         """ Test if bot log messages are correctly formatted. """
         print(f"prepare_bot: log_stream before testing it: {self.log_stream.getvalue()}")
-        #try:
-        self.assertLoglineMatches(0, BOT_INIT_REGEX.format(self.bot_name,
-                                                           self.bot_id), "INFO")
-        #except AssertionError:
-        #    if version_info <= (3, 8):
-        #        # In Python 3.7, the logging of the previous bot run can end up in the logging of the next run, resulting in line 0 being:
-        #        # "Processed 1 messages since last logging." (written at shutdown of that bot)
-        #        pass
-        #    else:
-        #        raise
+        try:
+            self.assertLoglineMatches(0, BOT_INIT_REGEX.format(self.bot_name,
+                                                            self.bot_id), "INFO")
+        except AssertionError as exc:
+            # In some obscure but rate instances the logging of the previous bot run can end up in the logging of the next run, resulting in line 0 being:
+            # "Processed/Forwarded 1 messages since last logging." (written at shutdown of that previous bot run)
+            if 'since last logging' in exc.args[0]:
+                pass
+            else:
+                raise
         self.assertRegexpMatchesLog("INFO - Bot is starting.")
         if stop_bot:
             self.assertLoglineEqual(-1, "Bot stopped.", "INFO")
@@ -511,8 +511,8 @@ class BotTestCase:
 
         self.assertIsNotNone(self.loglines)
         logline = self.loglines[line_no]
-        fields = utils.parse_logline(logline)
-        print(f'assertLoglineMatches: logline: {logline}, fields: {fields}')
+        fields = utils.parse_logline(logline.strip('\x00'))
+        print(f'assertLoglineMatches: logline: {logline!r}, fields: {fields!r}')
 
         self.assertEqual(self.bot_id, fields["bot_id"],
                          "bot_id {!r} didn't match {!r}."
