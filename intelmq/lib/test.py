@@ -205,6 +205,7 @@ class BotTestCase:
                 default: {"_default": "{}-output".format(self.bot_id)}
         """
         self.log_stream = io.StringIO()
+        print(f"prepare_bot: log_stream after initialiation: {self.log_stream.getvalue()}")
 
         src_name = f"{self.bot_id}-input"
         if not destination_queues:
@@ -228,6 +229,7 @@ class BotTestCase:
                                 log_format_stream=utils.LOG_FORMAT,
                                 log_level=config['logging_level'])
         self.logger_handlers_backup = self.logger.handlers
+        print(f"prepare_bot: log_stream after initialiation of logger: {self.log_stream.getvalue()}")
 
         parameters = Parameters()
         setattr(parameters, 'source_queue', src_name)
@@ -237,7 +239,16 @@ class BotTestCase:
                         new=self.mocked_config):
             with mock.patch('intelmq.lib.utils.log', self.get_mocked_logger(self.logger)):
                 with mock.patch('intelmq.lib.utils.get_global_settings', mocked_get_global_settings):
+                    print(f"prepare_bot: log_stream before bot instanciation: {self.log_stream.getvalue()}")
+                    """
+                    Since Bot.__del__ method calls Bot.stop, log messages of the previous bot run like:
+                    "Processed/Forwarded X messages since last logging."
+                    "Bot stopped"
+                    appear in the log_stream at this point. So we clean the log before calling the bot, so that the tests in run_bot succeed.
+                    """
+                    self.log_stream.truncate(0)
                     self.bot = self.bot_reference(self.bot_id)
+                    print(f"prepare_bot: log_stream after bot creation: {self.log_stream.getvalue()}")
         self.bot._Bot__stats_cache = None
 
         pipeline_args = {key: getattr(self, key) for key in dir(self) if not inspect.ismethod(getattr(self, key)) and (key.startswith('source_pipeline_') or key.startswith('destination_pipeline'))}
@@ -317,9 +328,11 @@ class BotTestCase:
                         new=self.mocked_config):
             with mock.patch('intelmq.lib.utils.log', self.get_mocked_logger(self.logger)):
                 for run in range(iterations):
+                    print(f"prepare_bot: log_stream before bot start: {self.log_stream.getvalue()}")
                     self.bot.start(error_on_pipeline=error_on_pipeline,
                                    source_pipeline=self.pipe,
                                    destination_pipeline=self.pipe)
+                    print(f"prepare_bot: log_stream after bot start: {self.log_stream.getvalue()}")
                 if stop_bot:
                     self.bot.stop(exitcode=0)
         self.loglines_buffer = self.log_stream.getvalue()
@@ -356,16 +369,17 @@ class BotTestCase:
                 self.assertIn('raw', event)
 
         """ Test if bot log messages are correctly formatted. """
-        try:
-            self.assertLoglineMatches(0, BOT_INIT_REGEX.format(self.bot_name,
-                                                               self.bot_id), "INFO")
-        except AssertionError:
-            if version_info <= (3, 8):
-                # In Python 3.7, the logging of the previous bot run can end up in the logging of the next run, resulting in line 0 being:
-                # "Processed 1 messages since last logging." (written at shutdown of that bot)
-                pass
-            else:
-                raise
+        print(f"prepare_bot: log_stream before testing it: {self.log_stream.getvalue()}")
+        #try:
+        self.assertLoglineMatches(0, BOT_INIT_REGEX.format(self.bot_name,
+                                                           self.bot_id), "INFO")
+        #except AssertionError:
+        #    if version_info <= (3, 8):
+        #        # In Python 3.7, the logging of the previous bot run can end up in the logging of the next run, resulting in line 0 being:
+        #        # "Processed 1 messages since last logging." (written at shutdown of that bot)
+        #        pass
+        #    else:
+        #        raise
         self.assertRegexpMatchesLog("INFO - Bot is starting.")
         if stop_bot:
             self.assertLoglineEqual(-1, "Bot stopped.", "INFO")
@@ -498,6 +512,7 @@ class BotTestCase:
         self.assertIsNotNone(self.loglines)
         logline = self.loglines[line_no]
         fields = utils.parse_logline(logline)
+        print(f'assertLoglineMatches: logline: {logline}, fields: {fields}')
 
         self.assertEqual(self.bot_id, fields["bot_id"],
                          "bot_id {!r} didn't match {!r}."

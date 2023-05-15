@@ -6,7 +6,7 @@
 name: "Unit tests"
 on:
   push:
-    branches: [develop, maintenance, master]
+    #    branches: [develop, maintenance, master]
   pull_request:
     branches: [develop, maintenance]
     paths-ignore:
